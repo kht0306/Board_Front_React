@@ -1,4 +1,6 @@
+import axios from "axios";
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, Table } from "reactstrap";
 import BelowOptions from "./BelowOptions";
 import SearchOption from "./SearchOption";
@@ -7,16 +9,72 @@ import Tr from "./Tr";
 const ListTable = ({ match }) => {
   const [boardList, setBoardList] = useState([]);
   const [pagingInfo, setPagingInfo] = useState([]);
+  const [pageCnt, setPageCnt] = useState();
+  const [sortRule, setSortRule] = useState("no,desc");
+  // const [firstDay, setFirstDay] = useState();
+  // const [lasttDay, setLastDay] = useState();
 
-  //함수 실행시 최초 한번 실행됨+상태값이 변할때 마다 변함
   useEffect(() => {
-    fetch("http://localhost:8080/board/list", { method: "GET" }) //비동기 함수 fetch는 데이터를 요청하는 의미 (await async방법도 있음) GET은 디폴트 임으로 { method: "GET" } 생략가능
-      .then((res) => res.json()) //프로미스 (1.페이지 태그가 작성되는 중간에 자료를 가지고 대기 했다가)
+    // axios({
+    //   method: "GET",
+    //   url: "http://localhost:8080/board/firstLastDates",
+    // })
+    //   .then(function (response) {
+    //      setFirstDay(response.data[0].regDate);
+    //      setLastDay(response.data[1].regDate);
+    //   })
+    //   .catch(function (error) {
+    //     alert(error);
+    //   });
+
+    fetch(
+      "http://localhost:8080/board/list?" +
+        match.params.page +
+        "&size=" +
+        pageCnt +
+        "&sort=" +
+        sortRule,
+      {
+        method: "GET",
+      }
+    )
+      .then((res) => res.json())
       .then((res) => {
-        setBoardList(res.content); // 최초 초기화  (2. 다그려지면, setBoardList로 상태값의 변화를 줘서 다시 그림, 즉 값이 들어간 채로 나옴)
+        setBoardList(res.content);
         setPagingInfo(res);
       });
-  }, []); // []은 최초 한번만을 의미
+  }, [match.params.page, pageCnt, sortRule]);
+
+  //번호 누를 때 정렬처리
+  const sortingByNo = () => {
+    const listSortingByNo = [...boardList];
+    if (listSortingByNo[0].no > listSortingByNo[1].no) {
+      setSortRule("no,asc");
+    } else if (listSortingByNo[0].no < listSortingByNo[1].no) {
+      setSortRule("no,desc");
+    }
+  };
+
+  //날짜 누를 때 정렬처리(원래 이렇게 하면 되나 현재 db날짜 데이터가 시간을 표시 하지 않아서 비교처리가 안됨....)
+  // const sortingByRegDate = () => {
+  //   const listSortingByRegDate = [...boardList];
+  //   let prevRegDate = new Date(listSortingByRegDate[0].regDate);
+  //   let afterRegDate = new Date(listSortingByRegDate[1].regDate);
+  //   if (prevRegDate > afterRegDate) {
+  //     setSortRule("no,asc");
+  //   } else if (prevRegDate < afterRegDate) {
+  //     setSortRule("no,desc");
+  //   }
+  // };
+
+  const sortingByRegDate = () => {
+    const listSortingByNo = [...boardList];
+    if (listSortingByNo[0].no > listSortingByNo[1].no) {
+      setSortRule("no,asc");
+    } else if (listSortingByNo[0].no < listSortingByNo[1].no) {
+      setSortRule("no,desc");
+    }
+  };
 
   return (
     <div>
@@ -24,15 +82,22 @@ const ListTable = ({ match }) => {
         <CardHeader>
           <CardTitle tag="h5">게시글 목록</CardTitle>
         </CardHeader>
-        <SearchOption />
+        <SearchOption
+          setBoardList={setBoardList}
+          setPagingInfo={setPagingInfo}
+        />
         <Table>
           <thead>
             <tr>
-              <th style={{ width: "10%" }}>번호</th>
+              <th style={{ width: "10%" }} onClick={sortingByNo}>
+                번호⇳
+              </th>
               <th style={{ width: "20%" }}>분류</th>
               <th style={{ width: "30%" }}>제목</th>
               <th style={{ width: "15%" }}>작성자</th>
-              <th style={{ width: "15%" }}>등록일</th>
+              <th style={{ width: "15%" }} onClick={sortingByRegDate}>
+                등록일⇳
+              </th>
               <th style={{ width: "10%" }}>파일첨부</th>
             </tr>
           </thead>
@@ -47,9 +112,15 @@ const ListTable = ({ match }) => {
           </tbody>
         </Table>
       </Card>
-      <BelowOptions pagingInfo={pagingInfo} />
+      <BelowOptions
+        pagingInfo={pagingInfo}
+        match={match}
+        setBoardList={setBoardList}
+        setPagingInfo={setPagingInfo}
+        setPageCnt={setPageCnt}
+        sortRule={sortRule}
+      />
     </div>
   );
 };
-
 export default ListTable;
